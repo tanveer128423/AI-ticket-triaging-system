@@ -5,6 +5,9 @@ export default function Dashboard({ history, onClear }) {
   const escalated = history.filter((t) => t.escalation_required).length;
   const latest = history.slice(0, 6);
 
+  const topCategory = getTopValue(history, "business_category");
+  const topModule = getTopValue(history, "erp_module");
+
   return (
     <section className="animate-rise rounded-3xl border border-white/65 bg-white/88 p-5 shadow-xl backdrop-blur md:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -48,6 +51,26 @@ export default function Dashboard({ history, onClear }) {
           </p>
           <p className="mt-2 text-2xl font-semibold text-sky-700">
             {escalated}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+            Most Frequent Category
+          </p>
+          <p className="mt-2 text-lg font-semibold text-slate-900">
+            {topCategory}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+            Most Frequent Module
+          </p>
+          <p className="mt-2 text-lg font-semibold text-slate-900">
+            {topModule}
           </p>
         </div>
       </div>
@@ -96,4 +119,18 @@ export default function Dashboard({ history, onClear }) {
       </div>
     </section>
   );
+}
+
+function getTopValue(items, key) {
+  if (!items.length) {
+    return "-";
+  }
+
+  const counts = items.reduce((acc, current) => {
+    const label = current[key] || "Unknown";
+    acc[label] = (acc[label] || 0) + 1;
+    return acc;
+  }, {});
+
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
 }

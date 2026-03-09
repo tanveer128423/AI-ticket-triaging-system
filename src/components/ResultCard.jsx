@@ -51,6 +51,10 @@ export default function ResultCard({ result }) {
           <p>Assigned Team</p>
           <strong>{result.assigned_team}</strong>
         </article>
+        <article className="metric-card col-span-2">
+          <p>Source Provider</p>
+          <strong>{(result.source_provider || "unknown").toUpperCase()}</strong>
+        </article>
       </div>
 
       <div className="grid grid-cols-1 gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-700">
