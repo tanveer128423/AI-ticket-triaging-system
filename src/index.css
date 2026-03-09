@@ -114,6 +114,32 @@ strong {
   font-size: 0.95rem;
 }
 
+.showcase-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 1rem;
+}
+
+.chip {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #f8fafc;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #334155;
+}
+
+.workflow-step {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  padding: 0.6rem 0.75rem;
+}
+
 .animate-rise {
   animation: rise-in 500ms cubic-bezier(0.17, 0.89, 0.32, 1.18);
 }

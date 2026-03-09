@@ -19,7 +19,7 @@ export default function ProviderSelector({ provider, setProvider }) {
 
   return (
     <div className="space-y-3">
-      <label className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+      <label className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-20">
         Select Model Provider
       </label>
 
