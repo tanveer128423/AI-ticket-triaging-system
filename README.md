@@ -1,8 +1,9 @@
 # AI ERP Ticket Triage Copilot
-
-A portfolio-grade React app that classifies ERP support tickets using LLM APIs and produces structured triage output for operations teams.
-
 # Deployed Link - https://ai-ticket-triaging-system-6kb5.vercel.app/
+
+## Live Portfolio
+
+🌐 https://khalid-tanveer.vercel.app
 
 ## Why this project stands out
 
