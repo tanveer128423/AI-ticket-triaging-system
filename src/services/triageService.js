@@ -1,3 +1,192 @@
+export function parseTicketsInput(rawInput) {
+  const text = String(rawInput || "").trim();
+
+  if (!text) {
+    return [];
+  }
+
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  if (lines.length === 0) {
+    return [];
+  }
+
+  // Detect a likely CSV header and a column holding the ticket text.
+  const firstColumns = splitCsvLine(lines[0]);
+  const headerIndex = firstColumns.findIndex((col) =>
+    /ticket|description|issue|summary|text|body/i.test(col),
+  );
+
+  const looksLikeCsv = lines.some((line) => line.includes(","));
+  const hasHeader = headerIndex !== -1 && firstColumns.length > 1;
+
+  if (looksLikeCsv && hasHeader) {
+    return lines
+      .slice(1)
+      .map((line) => {
+        const cells = splitCsvLine(line);
+        return (cells[headerIndex] || "").trim();
+      })
+      .filter((value) => value.length > 0);
+  }
+
+  if (looksLikeCsv) {
+    // No clear header: use the longest cell on each row as the ticket text.
+    return lines
+      .map((line) => {
+        const cells = splitCsvLine(line);
+        return cells.reduce(
+          (longest, cell) => (cell.length > longest.length ? cell : longest),
+          "",
+        ).trim();
+      })
+      .filter((value) => value.length > 0);
+  }
+
+  // Plain text: one ticket per line.
+  return lines;
+}
+
+function splitCsvLine(line) {
+  const result = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      result.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current);
+  return result.map((cell) => cell.trim());
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function isRetryableError(message) {
+  return /rate limit|rate_limit|overload|temporarily|timeout|please retry|try again|429|503|500/i.test(
+    String(message || ""),
+  );
+}
+
+async function analyzeWithRetry(provider, apiKey, text, maxRetries = 3) {
+  let lastError;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    try {
+      return await analyzeTicket(provider, apiKey, text);
+    } catch (err) {
+      lastError = err;
+
+      if (attempt === maxRetries || !isRetryableError(err.message)) {
+        throw err;
+      }
+
+      // Exponential backoff with jitter: ~1s, 2s, 4s.
+      const delay = 1000 * 2 ** attempt + Math.floor(Math.random() * 400);
+      await sleep(delay);
+    }
+  }
+
+  throw lastError;
+}
+
+export async function analyzeBatch(provider, apiKey, tickets, onProgress) {
+  const list = Array.isArray(tickets) ? tickets : [];
+  const results = [];
+  let completed = 0;
+
+  for (let index = 0; index < list.length; index += 1) {
+    const ticketText = String(list[index] || "").trim();
+
+    if (ticketText.length < 20) {
+      results.push({
+        index,
+        ok: false,
+        ticket_text: ticketText,
+        error: "Ticket too short (min 20 characters).",
+      });
+    } else {
+      try {
+        const analysis = await analyzeWithRetry(provider, apiKey, ticketText);
+        results.push({
+          index,
+          ok: true,
+          ticket_text: ticketText,
+          analysis: { ...analysis, ticket_text: ticketText },
+        });
+      } catch (err) {
+        results.push({
+          index,
+          ok: false,
+          ticket_text: ticketText,
+          error: err.message || "Analysis failed.",
+        });
+      }
+    }
+
+    completed += 1;
+
+    if (typeof onProgress === "function") {
+      onProgress({ completed, total: list.length });
+    }
+  }
+
+  return results;
+}
+
+export function toCsv(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return "";
+  }
+
+  const headers = [
+    "ticket_id",
+    "timestamp",
+    "business_category",
+    "erp_module",
+    "issue_type",
+    "priority",
+    "assigned_team",
+    "confidence",
+    "sla_target_hours",
+    "escalation_required",
+    "human_review_required",
+    "source_provider",
+    "ticket_text",
+  ];
+
+  const escape = (value) => {
+    const str = String(value ?? "");
+    if (/[",\n]/.test(str)) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const lines = rows.map((row) =>
+    headers.map((key) => escape(row[key])).join(","),
+  );
+
+  return [headers.join(","), ...lines].join("\n");
+}
+
 export async function analyzeTicket(provider, apiKey, text) {
   const selectedProvider = String(provider || "").toLowerCase();
 
@@ -50,7 +239,7 @@ async function analyzeWithGemini(apiKey, text) {
   const prompt = buildPrompt(text);
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

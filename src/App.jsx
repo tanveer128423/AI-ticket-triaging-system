@@ -10,6 +10,7 @@ import ProviderSelector from "./components/ProviderSelector";
 import TicketForm from "./components/TicketForm";
 import ResultCard from "./components/ResultCard";
 import Dashboard from "./components/Dashboard";
+import BatchTriage from "./components/BatchTriage";
 import ErrorAlert from "./components/ErrorAlert";
 import { analyzeTicket } from "./services/triageService";
 
@@ -120,6 +121,13 @@ export default function App() {
     setLoading(false);
   };
 
+  const handleBatchComplete = (analyses) => {
+    if (!Array.isArray(analyses) || analyses.length === 0) {
+      return;
+    }
+    setHistory((prev) => [...analyses.slice().reverse(), ...prev]);
+  };
+
   const clearHistory = () => {
     localStorage.removeItem(HISTORY_KEY);
     setHistory([]);
@@ -185,6 +193,9 @@ export default function App() {
               </NavLink>
               <NavLink to="/triage" className={navClassName}>
                 Triage
+              </NavLink>
+              <NavLink to="/batch" className={navClassName}>
+                Batch
               </NavLink>
               <NavLink to="/dashboard" className={navClassName}>
                 Dashboard
@@ -354,6 +365,19 @@ export default function App() {
                     )}
                   </section>
                 </div>
+              }
+            />
+
+            <Route
+              path="/batch"
+              element={
+                <BatchTriage
+                  provider={provider}
+                  setProvider={setProvider}
+                  apiKey={apiKey}
+                  setApiKey={setApiKey}
+                  onComplete={handleBatchComplete}
+                />
               }
             />
 
